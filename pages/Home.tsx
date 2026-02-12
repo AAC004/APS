@@ -137,7 +137,7 @@ const Home: React.FC = () => {
                     Nous ne sommes pas une agence marketing déguisée. Nous sommes des <strong>Ingénieurs IA Appliquée</strong>.
                   </p>
                   <p>
-                    Notre engagement : <strong>Qualité > Quantité</strong>. Pour garantir un niveau d'expertise maximal, nous limitons volontairement notre activité de conseil à <strong>5 projets clés par an</strong>.
+                    Notre engagement : <strong>Qualité &gt; Quantité</strong>. Pour garantir un niveau d'expertise maximal, nous limitons volontairement notre activité de conseil à <strong>5 projets clés par an</strong>.
                   </p>
                   <p>
                     Cette rareté est votre assurance. Quand nous travaillons sur vos données, c'est notre équipe senior qui opère. Nous vous apportons la rigueur scientifique alliée au pragmatisme entrepreneurial.
