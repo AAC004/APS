@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Menu, X, Mail, ArrowRight } from 'lucide-react';
+import { Menu, X, Mail, LogIn, User, LogOut } from 'lucide-react';
+import { supabase } from './lib/supabase';
+import { Session } from '@supabase/supabase-js';
+import AuthModal from './components/AuthModal';
+
 import Home from './pages/Home';
 import About from './pages/About';
 import Blog from './pages/Blog';
@@ -12,7 +16,12 @@ import Careers from './pages/Careers';
 
 // --- Components ---
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  session: Session | null;
+  onOpenAuth: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ session, onOpenAuth }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
 
@@ -25,6 +34,10 @@ const Header: React.FC = () => {
   ];
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
@@ -53,12 +66,32 @@ const Header: React.FC = () => {
                 {link.name}
               </Link>
             ))}
-            <Link
-              to="/contact"
-              className="bg-primary text-white px-5 py-2.5 rounded-md text-sm font-medium hover:bg-slate-800 transition-colors shadow-lg shadow-blue-900/20"
-            >
-              Prendre RDV
-            </Link>
+            
+            {/* Auth Buttons */}
+            {session ? (
+              <div className="flex items-center gap-4">
+                 <Link
+                  to="/contact"
+                  className="bg-primary text-white px-5 py-2.5 rounded-md text-sm font-medium hover:bg-slate-800 transition-colors shadow-lg shadow-blue-900/20"
+                >
+                  Espace Client
+                </Link>
+                <button 
+                  onClick={handleLogout}
+                  className="text-gray-500 hover:text-red-500 transition-colors"
+                  title="Se déconnecter"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={onOpenAuth}
+                className="flex items-center gap-2 text-primary font-semibold hover:text-accent transition-colors text-sm"
+              >
+                <LogIn className="w-4 h-4" /> Se connecter
+              </button>
+            )}
           </div>
 
           <div className="flex items-center md:hidden">
@@ -90,13 +123,31 @@ const Header: React.FC = () => {
                 {link.name}
               </Link>
             ))}
-            <Link 
-              to="/contact" 
-              onClick={() => setIsOpen(false)}
-              className="w-full text-left block px-3 py-2 text-base font-medium text-white bg-primary rounded-md mt-4"
-            >
-              Prendre RDV
-            </Link>
+            
+            {session ? (
+               <>
+                <Link 
+                  to="/contact" 
+                  onClick={() => setIsOpen(false)}
+                  className="w-full text-left block px-3 py-2 text-base font-medium text-white bg-primary rounded-md mt-4"
+                >
+                  Espace Client / Contact
+                </Link>
+                <button
+                  onClick={() => { handleLogout(); setIsOpen(false); }}
+                  className="w-full text-left block px-3 py-2 text-base font-medium text-red-500 hover:bg-red-50 rounded-md mt-2"
+                >
+                  Se déconnecter
+                </button>
+               </>
+            ) : (
+              <button 
+                onClick={() => { onOpenAuth(); setIsOpen(false); }}
+                className="w-full text-left block px-3 py-2 text-base font-medium text-white bg-primary rounded-md mt-4"
+              >
+                Se connecter / S'inscrire
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -157,10 +208,28 @@ const Footer: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [isAuthModalOpen, setAuthModalOpen] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   return (
     <HashRouter>
       <div className="flex flex-col min-h-screen">
-        <Header />
+        <Header session={session} onOpenAuth={() => setAuthModalOpen(true)} />
+        <AuthModal isOpen={isAuthModalOpen} onClose={() => setAuthModalOpen(false)} />
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Home />} />
@@ -168,7 +237,10 @@ const App: React.FC = () => {
             <Route path="/use-cases" element={<UseCases />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/careers" element={<Careers />} />
-            <Route path="/contact" element={<Contact />} />
+            <Route 
+              path="/contact" 
+              element={<Contact session={session} onOpenAuth={() => setAuthModalOpen(true)} />} 
+            />
             <Route path="/legal" element={<Legal />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="*" element={<Home />} />
